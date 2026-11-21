@@ -3,6 +3,7 @@ package yqlib
 import (
 	"container/list"
 	"fmt"
+	"sort"
 )
 
 func createPathNodeFor(pathElement interface{}) *CandidateNode {
@@ -37,6 +38,51 @@ func getPathArrayFromNode(funcName string, node *CandidateNode) ([]interface{}, 
 
 	}
 	return path, nil
+}
+
+func comparePathArrays(left, right []interface{}) int {
+	for i := 0; i < len(left) && i < len(right); i++ {
+		switch leftValue := left[i].(type) {
+		case int:
+			rightValue, ok := right[i].(int)
+			if !ok {
+				return -1
+			}
+			if leftValue < rightValue {
+				return -1
+			} else if leftValue > rightValue {
+				return 1
+			}
+		case string:
+			rightValue, ok := right[i].(string)
+			if !ok {
+				return 1
+			}
+			if leftValue < rightValue {
+				return -1
+			} else if leftValue > rightValue {
+				return 1
+			}
+		}
+	}
+	if len(left) < len(right) {
+		return -1
+	} else if len(left) > len(right) {
+		return 1
+	}
+	return 0
+}
+
+func samePathArray(left, right []interface{}) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // SETPATH(pathArray; value)
@@ -115,7 +161,7 @@ func delPathsOperator(d *dataTreeNavigator, context Context, expressionNode *Exp
 		return Context{}, fmt.Errorf("DELPATHS: expected a sequence of sequences, but found %v", pathArraysNode.Tag)
 	}
 
-	updatedContext := context
+	paths := make([][]interface{}, 0, len(pathArraysNode.Content))
 
 	for i, child := range pathArraysNode.Content {
 
@@ -127,6 +173,23 @@ func delPathsOperator(d *dataTreeNavigator, context Context, expressionNode *Exp
 		if err != nil {
 			return Context{}, err
 		}
+
+		paths = append(paths, childPath)
+	}
+
+	// Delete deeper paths and larger array indices first, so earlier deletions
+	// cannot change the meaning of paths that remain.
+	sort.Slice(paths, func(i, j int) bool {
+		return comparePathArrays(paths[i], paths[j]) > 0
+	})
+
+	updatedContext := context
+	var previousPath []interface{}
+	for _, childPath := range paths {
+		if previousPath != nil && samePathArray(previousPath, childPath) {
+			continue
+		}
+		previousPath = childPath
 
 		childTraversalExp := createTraversalTree(childPath, traversePreferences{}, false)
 		deleteChildOp := &Operation{OperationType: deleteChildOpType}

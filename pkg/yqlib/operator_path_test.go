@@ -140,6 +140,30 @@ var pathOperatorScenarios = []expressionScenario{
 		},
 	},
 	{
+		skipDoc:    true,
+		document:   `[a, b, c, d]`,
+		expression: `delpaths([[0], [2]])`,
+		expected: []string{
+			"D0, P[], (!!seq)::[b, d]\n",
+		},
+	},
+	{
+		skipDoc:    true,
+		document:   `[a, b, c, d]`,
+		expression: `delpaths([[2], [0]])`,
+		expected: []string{
+			"D0, P[], (!!seq)::[b, d]\n",
+		},
+	},
+	{
+		skipDoc:    true,
+		document:   `[a, b, c]`,
+		expression: `delpaths([[0], [0]])`,
+		expected: []string{
+			"D0, P[], (!!seq)::[b, c]\n",
+		},
+	},
+	{
 		description: "Delete splat",
 		skipDoc:     true,
 		document:    `a: [cat, frog]`,
